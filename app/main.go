@@ -6,10 +6,15 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"encoding/json"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
 )
+
+type ReadArgs struct {
+	FilePath string `json:"file_path"`
+}
 
 func main() {
 	var prompt string
@@ -86,8 +91,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
+	msg := resp.Choices[0].Message
+	if len(msg.ToolCalls) > 0 {
+		toolCall := msg.ToolCalls[0]
+		functionName := toolCall.Function.Name
+		arguments := toolCall.Function.Arguments
+
+		if functionName != "Read" {
+			fmt.Fprintf(os.Stderr, "error: unexpected function name %s\n", functionName)
+			os.Exit(1)
+		}
+
+		var readArgs ReadArgs
+		if err := json.Unmarshal([]byte(arguments), &readArgs); err != nil {
+			fmt.Fprintf(os.Stderr, "error: failed to parse tool arguments: %v\n", err)
+			os.Exit(1)
+		}
+
+		fileBytes, err := os.ReadFile(readArgs.FilePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: failed to read file: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Print(string(fileBytes))
+		return
+
+	}
 	fmt.Fprintln(os.Stderr, "Logs from your program will appear here!")
 
-	fmt.Print(resp.Choices[0].Message.Content)
+	fmt.Print(msg.Content)
 }
