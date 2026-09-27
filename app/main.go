@@ -41,12 +41,7 @@ func main() {
 	client := openai.NewClient(option.WithAPIKey(apiKey), option.WithBaseURL(baseURL))
 	model := os.Getenv("LOCAL_MODEL")
 	if model == "" {
-		if os.Getenv("LOCAL") == "true" {
-			model = "nvidia/nemotron-3-ultra-550b-a55b:free"
-		} else {
-			model = "anthropic/claude-haiku-4.5"
-		}
-
+		model = "anthropic/claude-haiku-4.5"
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
