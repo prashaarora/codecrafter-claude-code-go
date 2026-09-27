@@ -10,6 +10,7 @@ import (
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
+	"github.com/joho/godotenv"
 )
 
 type ReadArgs struct {
@@ -17,6 +18,11 @@ type ReadArgs struct {
 }
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error: failed to load .env file")
+		os.Exit(1)
+	}
 	var prompt string
 	flag.StringVar(&prompt, "p", "", "Prompt to send to LLM")
 	flag.Parse()
@@ -103,12 +109,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		fileBytes, err := os.ReadFile(readArgs.FilePath)
+		content, err := os.ReadFile(readArgs.FilePath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error: failed to read file: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Print(string(fileBytes))
+		fmt.Print(string(content))
 		return
 
 	}
