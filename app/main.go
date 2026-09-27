@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/openai/openai-go/v3"
 	"github.com/openai/openai-go/v3/option"
@@ -16,20 +17,23 @@ func main() {
 	flag.Parse()
 
 	if prompt == "" {
-		panic("Prompt must not be empty")
+		fmt.Fprintln(os.Stderr, "error: prompt must not be empty")
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	apiKey := os.Getenv("OPENROUTER_API_KEY")
-	baseUrl := os.Getenv("OPENROUTER_BASE_URL")
-	if baseUrl == "" {
-		baseUrl = "https://openrouter.ai/api/v1"
+	baseURL := os.Getenv("OPENROUTER_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://openrouter.ai/api/v1"
 	}
 
 	if apiKey == "" {
-		panic("Env variable OPENROUTER_API_KEY not found")
+		fmt.Fprintln(os.Stderr, "error: env variable OPENROUTER_API_KEY not found")
+		os.Exit(1)
 	}
 
-	client := openai.NewClient(option.WithAPIKey(apiKey), option.WithBaseURL(baseUrl))
+	client := openai.NewClient(option.WithAPIKey(apiKey), option.WithBaseURL(baseURL))
 	model := os.Getenv("LOCAL_MODEL")
 	if model == "" {
 		if os.Getenv("LOCAL") == "true" {
@@ -39,7 +43,10 @@ func main() {
 		}
 
 	}
-	resp, err := client.Chat.Completions.New(context.Background(),
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	resp, err := client.Chat.Completions.New(ctx,
 		openai.ChatCompletionNewParams{
 			Model: model,
 			Messages: []openai.ChatCompletionMessageParamUnion{
@@ -75,7 +82,8 @@ func main() {
 		os.Exit(1)
 	}
 	if len(resp.Choices) == 0 {
-		panic("No choices in response")
+		fmt.Fprintln(os.Stderr, "error: no choices in response")
+		os.Exit(1)
 	}
 
 	// You can use print statements as follows for debugging, they'll be visible when running tests.
