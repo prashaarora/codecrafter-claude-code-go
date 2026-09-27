@@ -30,9 +30,18 @@ func main() {
 	}
 
 	client := openai.NewClient(option.WithAPIKey(apiKey), option.WithBaseURL(baseUrl))
+	model := os.Getenv("LOCAL_MODEL")
+	if model == "" {
+		if os.Getenv("LOCAL") == "true" {
+			model = "nvidia/nemotron-3-ultra-550b-a55b:free"
+		} else {
+			model = "anthropic/claude-haiku-4.5"
+		}
+
+	}
 	resp, err := client.Chat.Completions.New(context.Background(),
 		openai.ChatCompletionNewParams{
-			Model: "anthropic/claude-haiku-4.5",
+			Model: model,
 			Messages: []openai.ChatCompletionMessageParamUnion{
 				{
 					OfUser: &openai.ChatCompletionUserMessageParam{
@@ -49,12 +58,12 @@ func main() {
 					Parameters: openai.FunctionParameters{
 						"type": "object",
 						"properties": map[string]any{
-							"filePath": map[string]any{
+							"file_path": map[string]any{
 								"type": "string",
 								"description": "Path to the file to read",
 						},
 					},
-						"required": []string{"filePath"},
+						"required": []string{"file_path"},
 					},
 
 				}),
