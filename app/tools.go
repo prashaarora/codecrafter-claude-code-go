@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 
 	"github.com/openai/openai-go/v3"
 )
@@ -14,6 +15,10 @@ type ReadArgs struct {
 type WriteArgs struct {
 	FilePath string `json:"file_path"`
 	Content  string `json:"content"`
+}
+
+type BashArgs struct {
+	Command string `json:"command"`
 }
 
 func buildTools() []openai.ChatCompletionToolUnionParam {
@@ -50,6 +55,20 @@ func buildTools() []openai.ChatCompletionToolUnionParam {
 				"required": []string{"file_path", "content"},
 			},
 		}),
+		openai.ChatCompletionFunctionTool(openai.FunctionDefinitionParam{
+			Name:        "Bash",
+			Description: openai.String("Execute a shell command"),
+			Parameters: openai.FunctionParameters{
+				"type": "object",
+				"properties": map[string]any{
+					"command": map[string]any{
+						"type":        "string",
+						"description": "The shell command to execute",
+					},
+				},
+				"required": []string{"command"},
+			},
+		}),
 	}
 }
 
@@ -63,6 +82,8 @@ func executeTool(toolName string, arguments string) (string, error) {
 		return executeReadTool(arguments)
 	case "Write":
 		return executeWriteTool(arguments)
+	case "Bash":
+		return executeBashTool(arguments)
 	default:
 		return "", fmt.Errorf("unknown tool: %s", toolName)
 	}
@@ -89,4 +110,26 @@ func executeWriteTool(arguments string) (string, error) {
 		return "", fmt.Errorf("failed to write file: %w", err)
 	}
 	return "success", nil
+}
+
+func executeBashTool(arguments string) (string, error) {
+	var args BashArgs
+	if err := json.Unmarshal([]byte(arguments), &args); err != nil {
+		return "", fmt.Errorf("failed to parse arguments: %w", err)
+	}
+	cmd := exec.Command("sh", "-c", args.Command)
+	output, err := cmd.CombinedOutput()
+	result := string(output)
+	if err != nil {
+		if result == "" {
+			result = err.Error()
+		} else {
+			result = result + "\n" + err.Error()
+		}
+		return result, err
+	}
+	if result == "" {
+		result = "Command executed successfully"
+	}
+	return result, nil
 }
