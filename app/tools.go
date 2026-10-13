@@ -72,10 +72,6 @@ func buildTools() []openai.ChatCompletionToolUnionParam {
 	}
 }
 
-func executeToolCall(toolName string, arguments string) (string, error) {
-	return executeTool(toolName, arguments)
-}
-
 func executeTool(toolName string, arguments string) (string, error) {
 	switch toolName {
 	case "Read":

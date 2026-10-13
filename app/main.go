@@ -44,14 +44,18 @@ func main() {
 	if model == "" {
 		model = "anthropic/claude-haiku-4.5"
 	}
-
+	userContent, err := resolveUserContent(prompt)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: failed to resolve user content: %v\n", err)
+		os.Exit(1)
+	}
 	messages := []openai.ChatCompletionMessageParamUnion{}
 
 	skillsPrompt := loadSkillsSystemPrompt()
 	if skillsPrompt != "" {
 		messages = append(messages, openai.SystemMessage(skillsPrompt))
 	}
-	messages = append(messages, openai.UserMessage(prompt))
+	messages = append(messages, openai.UserMessage(userContent))
 
 	tools := buildTools()
 
@@ -84,7 +88,7 @@ func main() {
 		}
 
 		for _, toolCall := range msg.ToolCalls {
-			result, err := executeToolCall(toolCall.Function.Name, toolCall.Function.Arguments)
+			result, err := executeTool(toolCall.Function.Name, toolCall.Function.Arguments)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "error: failed to execute tool call: %v\n", err)
 				os.Exit(1)

@@ -11,7 +11,7 @@ import (
 )
 
 type Skill struct {
-	Name string `yaml:"name"`
+	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 }
 
@@ -51,7 +51,7 @@ func loadSkills() ([]Skill, error) {
 			continue
 		}
 
-		skill, err := parseSkillFomatter(string(content), folderName)
+		skill, err := parseSkillFrontmatter(string(content), folderName)
 		if err != nil {
 			continue
 		}
@@ -63,7 +63,7 @@ func loadSkills() ([]Skill, error) {
 	return skills, nil
 }
 
-func parseSkillFomatter(content string, folderName string) (Skill, error) {
+func parseSkillFrontmatter(content string, folderName string) (Skill, error) {
 	content = strings.ReplaceAll(content, "\r\n", "\n")
 
 	parts := strings.SplitN(content, "---", 3)
@@ -82,4 +82,41 @@ func parseSkillFomatter(content string, folderName string) (Skill, error) {
 	return skill, nil
 }
 
+func resolveUserContent(prompt string) (string, error) {
+	if !strings.HasPrefix(prompt, "/") {
+		return prompt, nil
+	}
 
+	fields := strings.Fields(prompt)
+	if len(fields) == 0 {
+		return prompt, nil
+	}
+
+	skillName := strings.TrimPrefix(fields[0], "/")
+	if skillName == "" {
+		return "", fmt.Errorf("skill name is empty")
+	}
+
+	body, err := loadSkillBody(skillName)
+	if err != nil {
+		return "", err
+	}
+	return body, nil
+}
+
+func loadSkillBody(skillName string) (string, error) {
+	skillFilePath := filepath.Join(".claude/skills", skillName, "SKILL.md")
+	contentBytes, err := os.ReadFile(skillFilePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read skill %s: %w", skillName, err)
+	}
+
+	content := strings.ReplaceAll(string(contentBytes), "\r\n", "\n")
+	parts := strings.SplitN(content, "---", 3)
+	if len(parts) < 3 {
+		return "", fmt.Errorf("missing frontmatter in skill %s", skillName)
+	}
+
+	body := strings.TrimSpace(parts[2])
+	return body, nil
+}
