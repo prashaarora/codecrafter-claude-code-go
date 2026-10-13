@@ -3,4 +3,5 @@ local.env
 !.env.example
 .env
 /tmp/
+.claude
 

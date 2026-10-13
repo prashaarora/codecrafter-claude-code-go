@@ -45,9 +45,13 @@ func main() {
 		model = "anthropic/claude-haiku-4.5"
 	}
 
-	messages := []openai.ChatCompletionMessageParamUnion{
-		openai.UserMessage(prompt),
+	messages := []openai.ChatCompletionMessageParamUnion{}
+
+	skillsPrompt := loadSkillsSystemPrompt()
+	if skillsPrompt != "" {
+		messages = append(messages, openai.SystemMessage(skillsPrompt))
 	}
+	messages = append(messages, openai.UserMessage(prompt))
 
 	tools := buildTools()
 
